@@ -15,8 +15,11 @@ from tensorflow.keras import metrics
 from tensorflow.keras import utils
 from tensorflow.keras import callbacks
 
+from . import __version__
+
 
 LOGGER = logging.getLogger()
+VERSION = __version__
 
 
 def _download_data():
@@ -62,6 +65,8 @@ def train_and_evaluate(batch_size, epochs, job_dir, output_path):
                   metrics=[metrics.categorical_accuracy])
 
     # Train the model
+    # Use tensorboard in the Cloud Shell without slash at the end
+    # e.g. tensorboard --logdir gs://BUCKET/tmp/logs  <-- no slash
     logdir = os.path.join(job_dir, "logs/scalars/" + time.strftime("%Y%m%d-%H%M%S"))
     tb_callback = callbacks.TensorBoard(log_dir=logdir)
     model.fit(x_train, 
@@ -73,6 +78,10 @@ def train_and_evaluate(batch_size, epochs, job_dir, output_path):
     # Evaluate the model
     loss_value, accuracy = model.evaluate(x_test, y_test)
     LOGGER.info("  *** LOSS VALUE:  %f     ACCURACY: %.4f" % (loss_value, accuracy))
+
+    # Save model in TF SavedModel Format
+    model_dir = os.path.join(output_path, VERSION)
+    models.save_model(model, model_dir, save_format='tf')
 
 def main():
     """Entry point for your module."""
